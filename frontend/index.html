@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jenkins CI/CD Demo</title>
+</head>
+<body>
+
+<h1>Frontend Service</h1>
+
+<button onclick="getMessage()">
+Get Backend Message
+</button>
+
+<p id="msg"></p>
+
+<script>
+
+async function getMessage(){
+
+let res = await fetch("http://localhost:5000/api");
+
+let data = await res.json();
+
+document.getElementById("msg").innerHTML=data.message;
+
+}
+
+</script>
+
+</body>
+</html>

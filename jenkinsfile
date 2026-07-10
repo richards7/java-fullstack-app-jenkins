@@ -1,0 +1,55 @@
+pipeline {
+
+    agent { label 'docker-agent' }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/richards7/java-fullstack-app-jenkins.git'
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh 'docker compose build'
+            }
+        }
+
+        stage('Deploy Database') {
+            steps {
+                sh 'docker compose up -d database'
+            }
+        }
+
+        stage('Deploy Backend') {
+            steps {
+                sh 'docker compose up -d backend'
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                sh 'docker compose up -d frontend'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'docker ps'
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Application deployed successfully.'
+        }
+
+        failure {
+            echo 'Deployment failed.'
+        }
+    }
+}
