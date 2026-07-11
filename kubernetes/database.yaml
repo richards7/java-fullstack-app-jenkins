@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-mongodb-test2-pod
+  labels:
+    project: fullstack-test2
+    app: database
+spec:
+  containers:
+  - name: my-database-container
+    image: mongo:7
+    ports:
+    - containerPort: 27017

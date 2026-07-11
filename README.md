@@ -1,236 +1,283 @@
-# Full Stack Application Deployment using Jenkins, Docker, Docker Hub & Kubernetes
+# Jenkins, Docker & Kubernetes - Full Stack Application Deployment
 
-## Project Overview
+## Overview
 
-This project demonstrates a simple CI/CD workflow for deploying a three-tier application using Jenkins. The application consists of a frontend, a backend, and a MongoDB database. Jenkins automates the process of cloning the source code, building Docker images, pushing them to Docker Hub, and deploying the application to Kubernetes (Minikube).
+This project demonstrates a simple end-to-end deployment of a three-tier application using **Docker**, **Docker Hub**, **Jenkins**, and **Kubernetes (Minikube)**.
 
-The objective of this project is to understand how different DevOps tools work together to automate the software deployment lifecycle.
+The application consists of:
+
+* **Frontend** – Static web application served using Nginx
+* **Backend** – Node.js and Express REST API
+* **Database** – MongoDB (Official Docker Image)
+
+The frontend and backend are containerized using Docker, pushed to Docker Hub, and deployed as Kubernetes Pods. Kubernetes Services are used to enable communication between the application components.
 
 ---
 
-## Tech Stack
+## Technologies Used
 
 * Jenkins
 * Docker
 * Docker Hub
-* Kubernetes (Minikube)
-* Node.js (Backend)
-* Nginx + HTML (Frontend)
+* Kubernetes
+* Minikube
+* Node.js
+* Express.js
+* Nginx
 * MongoDB
 * Git & GitHub
 
 ---
 
-## Project Structure
+## Project Architecture
 
+```text
+                   User
+                     │
+                     │
+          http://<Minikube-IP>:30080
+                     │
+                     ▼
+            Frontend Service
+              (NodePort)
+                     │
+                     ▼
+            Frontend Pod
+                     │
+                     │ HTTP Request
+                     ▼
+            Backend Service
+             (ClusterIP)
+                     │
+                     ▼
+            Backend Pod
+                     │
+                     │ MongoDB Connection
+                     ▼
+            MongoDB Service
+             (ClusterIP)
+                     │
+                     ▼
+             MongoDB Pod
 ```
-fullstack-app/
-│
-├── backend/
-│   ├── Dockerfile
-│   ├── server.js
-│   └── package.json
+
+---
+
+## Project Directory Structure
+
+```text
+jenkins-docker-k8s/
 │
 ├── frontend/
 │   ├── Dockerfile
 │   └── index.html
 │
-├── kubernetes/
-│   ├── backend-pod.yaml
-│   ├── frontend-pod.yaml
-│   └── database-pod.yaml
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── server.js
 │
-├── docker-compose.yml
+├── kubernetes/
+│   ├── frontend.yaml
+│   ├── backend.yaml
+│   ├── database.yaml
+│   ├── frontend-service.yaml
+│   ├── backend-service.yaml
+│   └── database-service.yaml
+│
 ├── Jenkinsfile
+├── docker-compose.yml
 └── README.md
 ```
 
 ---
 
-## Application Architecture
+## Kubernetes Resources
 
+### Pods
+
+* Frontend Pod
+* Backend Pod
+* MongoDB Pod
+
+### Services
+
+* Frontend Service (NodePort)
+* Backend Service (ClusterIP)
+* MongoDB Service (ClusterIP)
+
+---
+
+## Why Services Are Used
+
+Pods receive temporary IP addresses. If a Pod is recreated, its IP changes.
+
+Instead of communicating using Pod IP addresses, Kubernetes Services provide a stable network endpoint.
+
+Example:
+
+Frontend communicates with
+
+```text
+http://backend-service:5000
 ```
-Developer
-     │
-     ▼
-GitHub Repository
-     │
-     ▼
-Jenkins Pipeline
-     │
-     ├── Clone Repository
-     ├── Build Docker Images
-     ├── Push Images to Docker Hub
-     └── Deploy to Kubernetes
-                  │
-                  ▼
-        ┌────────────────────┐
-        │     Kubernetes     │
-        ├────────────────────┤
-        │  Frontend Pod      │
-        │  Backend Pod       │
-        │  MongoDB Pod       │
-        └────────────────────┘
+
+Backend communicates with
+
+```text
+mongodb://mongodb-service:27017
+```
+
+The service name remains the same even if the Pod is recreated.
+
+---
+
+## Deployment Steps
+
+### 1. Start Minikube
+
+```bash
+minikube start
 ```
 
 ---
 
-## Jenkins Pipeline Workflow
+### 2. Deploy Pods
+
+```bash
+kubectl apply -f kubernetes/frontend.yaml
+kubectl apply -f kubernetes/backend.yaml
+kubectl apply -f kubernetes/database.yaml
+```
+
+---
+
+### 3. Verify Pods
+
+```bash
+kubectl get pods
+```
+
+Expected output:
+
+```text
+NAME                     READY   STATUS
+my-frontend-test2-pod    1/1     Running
+my-backend-test2-pod     1/1     Running
+my-mongodb-test2-pod     1/1     Running
+```
+
+---
+
+### 4. Create Services
+
+```bash
+kubectl apply -f kubernetes/frontend-service.yaml
+kubectl apply -f kubernetes/backend-service.yaml
+kubectl apply -f kubernetes/database-service.yaml
+```
+
+---
+
+### 5. Verify Services
+
+```bash
+kubectl get svc
+```
+
+Example:
+
+```text
+NAME                 TYPE        PORT(S)
+frontend-service     NodePort    80:30080/TCP
+backend-service      ClusterIP   5000/TCP
+mongodb-service      ClusterIP   27017/TCP
+```
+
+---
+
+### 6. Access the Application
+
+Get the Minikube IP:
+
+```bash
+minikube ip
+```
+
+Open the application in a browser:
+
+```text
+http://<Minikube-IP>:30080
+```
+
+or simply run:
+
+```bash
+minikube service frontend-service
+```
+
+---
+
+## Jenkins Pipeline
 
 The Jenkins pipeline performs the following tasks:
 
-1. Clones the source code from GitHub.
-2. Builds Docker images for the frontend and backend.
-3. Pushes the images to Docker Hub.
-4. Pulls the images from Docker Hub into Kubernetes.
-5. Deploys the frontend, backend, and database pods.
-6. Verifies that the application is running successfully.
+* Clone the GitHub repository
+* Build Docker images
+* Push Docker images to Docker Hub
+* Verify successful image creation
+
+The Docker images are then used by Kubernetes to create the application Pods.
 
 ---
 
 ## Docker Images
 
-The following Docker images are used:
-
-* Frontend Image
-* Backend Image
-* MongoDB Official Image
-
-The frontend and backend images are stored in Docker Hub and pulled by Kubernetes during deployment.
+| Component | Image                |
+| --------- | -------------------- |
+| Frontend  | richards7/frontend:4 |
+| Backend   | richards7/backend:4  |
+| Database  | mongo:7              |
 
 ---
 
-## Kubernetes Deployment
+## What I Learned
 
-The application is deployed as three separate pods:
+Working on this project helped me understand:
 
-* Frontend Pod
-* Backend Pod
-* Database Pod
-
-After creating the pods, Kubernetes downloads the required images from Docker Hub and starts the containers automatically.
-
-Useful commands:
-
-```bash
-kubectl apply -f backend-pod.yaml
-kubectl apply -f frontend-pod.yaml
-kubectl apply -f database-pod.yaml
-```
-
-To verify:
-
-```bash
-kubectl get pods
-```
-
-To view pod details:
-
-```bash
-kubectl describe pod <pod-name>
-```
-
----
-
-## Jenkins Pipeline Stages
-
-* Clone Repository
-* Build Docker Images
-* Push Images to Docker Hub
-* Deploy Application
-* Verify Deployment
-
----
-
-## Prerequisites
-
-Before running this project, make sure the following are installed:
-
-* Git
-* Docker
-* Jenkins
-* Minikube
-* kubectl
-* Docker Hub Account
-
----
-
-## How to Run the Project
-
-### Step 1
-
-Clone the repository.
-
-```bash
-git clone <repository-url>
-```
-
-### Step 2
-
-Configure Docker Hub credentials in Jenkins.
-
-### Step 3
-
-Run the Jenkins pipeline.
-
-### Step 4
-
-Push the Docker images to Docker Hub.
-
-### Step 5
-
-Deploy the pods using Kubernetes.
-
-```bash
-kubectl apply -f backend-pod.yaml
-kubectl apply -f frontend-pod.yaml
-kubectl apply -f database-pod.yaml
-```
-
-### Step 6
-
-Verify the deployment.
-
-```bash
-kubectl get pods
-```
+* Creating Docker images
+* Publishing images to Docker Hub
+* Writing Declarative Jenkins Pipelines
+* Creating Kubernetes Pods
+* Creating Kubernetes Services
+* Service discovery using Kubernetes DNS
+* Difference between NodePort and ClusterIP
+* Communication between multiple application components
+* Troubleshooting image pull and networking issues in Kubernetes
 
 ---
 
 ## Challenges Faced
 
-During the implementation of this project, I encountered a few issues that helped me understand the deployment process better.
+Some of the challenges I encountered during development were:
 
-* Docker images were initially pushed without the correct tag.
-* Kubernetes returned an `ImagePullBackOff` error because it was trying to pull the `latest` tag while the images were pushed with a different tag.
-* The container ports for the frontend and backend were initially configured incorrectly.
-* Jenkins required proper Docker Hub credentials for pushing images successfully.
+* Docker image pull failures due to incorrect image tags.
+* Understanding the difference between Pod IPs and Service names.
+* Configuring NodePort and ClusterIP services correctly.
+* Debugging Kubernetes resources using `kubectl describe` and `kubectl logs`.
+* Connecting the frontend, backend, and database using Kubernetes Services instead of hardcoded IP addresses.
 
-Resolving these issues provided practical experience in debugging containerized applications and Kubernetes deployments.
-
----
-
-## Learning Outcomes
-
-After completing this project, I gained hands-on experience with:
-
-* Writing Declarative Jenkins Pipelines
-* Building Docker images
-* Managing Docker Hub repositories
-* Deploying applications on Kubernetes
-* Understanding Pod creation and image pulling
-* Troubleshooting deployment issues
-* Integrating multiple DevOps tools into a complete CI/CD workflow
+These issues helped me gain practical troubleshooting experience and a better understanding of Kubernetes networking.
 
 ---
 
 ## Future Improvements
 
-* Deploy the application using Kubernetes Deployments and Services instead of standalone Pods.
-* Add LoadBalancer or Ingress support.
-* Integrate automated testing into the Jenkins pipeline.
-* Add image vulnerability scanning.
-* Deploy the application to a cloud Kubernetes cluster such as Amazon EKS or Google Kubernetes Engine.
+* Replace standalone Pods with Kubernetes Deployments.
+* Add Persistent Volumes for MongoDB.
+* Configure Ingress for external routing.
+* Integrate automatic Kubernetes deployment into the Jenkins pipeline.
+* Deploy the application on a managed Kubernetes service such as Amazon EKS.
 
 ---
 
@@ -238,6 +285,6 @@ After completing this project, I gained hands-on experience with:
 
 **Aashish Richard J**
 
-Final Year Student
+Final Year – Computer Science and Business Systems
 
 Cloud & DevOps Enthusiast

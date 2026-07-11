@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: my-backend-test2-pod
+  labels:
+    project: fullstack-test2
+    app: backend
+
+spec:
+  containers:
+    - name: test2-container-b
+      image: richards7/backend:4
+      ports:
+        - containerPort: 5000
